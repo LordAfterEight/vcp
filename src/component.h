@@ -1,3 +1,11 @@
+#include <stdio.h>
+#define DEBUG(a) \
+    printf(_Generic((a), \
+        char *: "[%s] [%s:%d]: %s\n", \
+        const char *: "[%s] [%s:%d]: %s\n", \
+        int   : "[%s] [%s:%d]: %d\n" \
+    ), __FILE__, __func__, __LINE__, (a))
+
 enum PinType {
     INPUT,
     OUTPUT,
@@ -9,7 +17,7 @@ struct Pin {
     enum PinType type;
     bool is_connected;
     int value;
-    struct Port *port; // Pointer to the port this pin is connected to
+    struct Port *linked_port;
 };
 
 struct Component {
@@ -21,7 +29,7 @@ struct Port {
     char *name;
     bool is_connected;
     int value;
-    struct Pin *pins[10]; // Array of pointers to pins connected to this port
+    struct Pin *pins[10];
 };
 
 struct PortBoard {
@@ -30,8 +38,10 @@ struct PortBoard {
 
 void connect_pin_to_board(struct Pin *pin, struct Port *port) {
     pin->is_connected = true;
-    pin->port = port;
+    pin->linked_port = port;
 
+    DEBUG("Connecting pin to port");
+    DEBUG(pin->name);
     for (int i = 0; i < 10; i++) {
         if (port->pins[i] == NULL) {
             port->pins[i] = pin;
@@ -40,12 +50,12 @@ void connect_pin_to_board(struct Pin *pin, struct Port *port) {
     }
 }
 
-void update(struct PortBoard *board) {
+void port_board_update(struct PortBoard *board) {
+    DEBUG("Updating port board");
     for (int p = 0; p < 100; p++) {
         struct Port *port = &board->ports[p];
-        if (!port->name) continue; // skip unused ports
+        if (!port->name) continue;
 
-        // Step 1: compute port value from outputs
         int port_value = 0;
         for (int i = 0; i < 10; i++) {
             struct Pin *pin = port->pins[i];
